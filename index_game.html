@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title> Pixel Climber </title>
+    <script src="//cdn.jsdelivr.net/npm/phaser@3.11.0/dist/phaser.js"></script>
+    <style type="text/css">
+    body {
+        margin: 0;
+    }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+
+var config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 300 },
+            debug: false
+        }
+    },
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    }
+};
+
+var player;
+var stars;
+var bombs;
+var platforms;
+var cursors;
+var score = 0;
+var gameOver = false;
+var scoreText;
+
+var game = new Phaser.Game(config);
+
+
+function preload() {
+    game.load.image('background', 'Background.png');
+    game.load.image('spike', 'Sprites.png');
+    game.load.atlas('player', 'Sprites.png','Sprites.json');
+    game.load.image('tiles', 'Mapa.json');
+    // game.load.tilemapTiledJSON('map', 'img/Mapa.tmj');
+    game.load.createStaticLayer()
+ }
+
+function create ()
+{
+    var background = game.add.sprite(0, 0, 'Mapa', 'img/background.jpg');
+}
+    game.anims.create({
+        key: 'turn',
+        frames: [ { key: 'dude', frame: 4 } ],
+        frameRate: 20
+    });
+    game.anims.create({
+        key: 'right',
+        frames: game.anims.generateFrameNumbers('dude', { start:5, end: 8 }),
+        frameRate: 10,
+        repeat: -1
+    });
+    cursors = game.input.keyboard.createCursorKeys();
+    stars = game.physics.add.group({
+        key: 'star',
+        repeat: 11,
+        setXY: { x: 12, y: 0, stepX: 70 }
+    });
+    stars.children.iterate(function (child) {
+        child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+    });
+    bombs = game.physics.add.group();
+
+    scoreText = game.add.text(16, 16, 'score: 0', { fontSize:'32px', fill: '#000' });
+    game.physics.add.collider(player, platforms);
+    game.physics.add.collider(stars, platforms);
+    game.physics.add.collider(bombs, platforms);
+    game.physics.add.overlap(player, stars, collectStar, null,game);
+    game.physics.add.collider(player, bombs, hitBomb, null, game);
+
+function update ()
+{
+    if (gameOver)
+    {
+        return;
+    }
+    if (cursors.left.isDown)
+    {
+        player.setVelocityX(-160);
+        player.anims.play('left', true);
+    }
+    else if (cursors.right.isDown)
+    {
+        player.setVelocityX(160);
+        player.anims.play('right', true);
+    }
+    else
+    {
+        player.setVelocityX(0);
+        player.anims.play('turn');
+    }
+    if (cursors.up.isDown && player.body.touching.down)
+    {
+        player.setVelocityY(-330);
+    }
+}
+function collectStar (player, star)
+{
+    star.disableBody(true, true);
+    score += 10;
+    scoreText.setText('Score:',' + score');
+    if (stars.countActive(true) === 0)
+    {
+        stars.children.iterate(function (child) {
+            child.enableBody(true, child.x, 0, true, true);
+        });
+        var x = (player.x < 400) ? Phaser.Math.Between(400, 800)
+        : Phaser.Math.Between(0, 400);
+        var bomb = bombs.create(x, 16, 'bomb');
+        bomb.setBounce(1);
+        bomb.setCollideWorldBounds(true);
+        bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+        bomb.allowGravity = false;
+    }
+}
+
+function hitBomb (player, bomb)
+{
+    game.physics.pause();
+    player.setTint(0xff0000);
+    player.anims.play('turn');
+    gameOver = true;
+}
+const map = game.make.tilemap({ key: 'map' });
+const tileset = map.addTilesetImage('kenney_simple_platformer',
+'tiles');
+// const platforms = map.createStaticLayer('Platforms', tileset, 0,
+// 200);
+// https://github.com/PaulaFarell/Videojoc.git
+</script>
+</body>
+</html>
